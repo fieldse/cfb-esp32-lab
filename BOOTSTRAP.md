@@ -1,6 +1,6 @@
 # Bootstrap Checklist
 
-This file is for the agent. Work through each step silently. Keep the user informed with brief, friendly status updates but do not ask them to run commands or look at this file.
+This file is for the agent. Work through each step silently. Keep the user informed with brief, friendly status updates but do not ask them to run commands or look at this file. Do not install unnecessary things like emulators etc unless explicitly asked to.
 
 ---
 

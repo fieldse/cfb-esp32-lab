@@ -18,8 +18,8 @@ No terminal skills needed. No hardware experience needed. Just vibes.
 
 - A laptop (charged)
 - A USB-C cable
-- A coding agent: [Claude Code](https://claude.ai/code), Codex, or Cursor
-- An ESP32 board (we'll provide one if you don't have your own)
+- A coding agent: Claude Code, Codex, or Cursor
+- An ESP32 board
 
 ---
 
@@ -35,7 +35,7 @@ The agent will take it from there — installing any tools needed and connecting
 
 ## The board
 
-Workshop boards are the **AI-Thinker ESP32-C3** with a 0.42" OLED display. They come pre-flashed with a starter project that connects to WiFi and shows the board's IP address on screen, enabling wireless flashing from the start.
+Workshop boards are the **ESP32-C3** with a 0.42" OLED display. They come pre-flashed with a starter project that connects to WiFi and shows the board's IP address on screen, enabling wireless flashing from the start.
 
 If you brought your own ESP32, that works too — let your agent know what board you have.
 

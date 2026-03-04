@@ -39,6 +39,14 @@
 | 0 | GPIO0 (A0/ADC) | | GPIO3 (A3/ADC) | 3 |
 | — | BOOT button | | RST button | — |
 
+### Onboard RGB LED
+| Item | Detail |
+|------|--------|
+| Type | WS2812B (NeoPixel addressable RGB) |
+| GPIO | GPIO2 |
+| Library | Adafruit NeoPixel |
+| Notes | Shows red when powered on by default; GPIO2 is also ADC channel A2 — avoid using it for analog input if the LED is active |
+
 ### Key notes for programming
 - **Flash mode:** QIO, 80 MHz; 4 MB flash
 - **Flashing:** hold BOOT, press RST, release RST, then release BOOT (if auto-download fails)
