@@ -285,10 +285,33 @@ static esp_err_t http_get_handler_for_ota_upload_page(httpd_req_t *http_request_
     "<div class='container'>"
     "<p>Upload new firmware (.bin file) to update this device.</p>"
     "<div class='warning'><strong>Warning:</strong> Device will reboot after upload. Wait 60 seconds before reconnecting.</div>"
-    "<form method='POST' action='/ota' enctype='multipart/form-data'>"
+    "<form id='ota-form'>"
     "<input type='file' name='firmware' accept='.bin' required>"
-    "<input type='submit' value='Upload Firmware'>"
+    "<input id='upload-button' type='submit' value='Upload Firmware'>"
     "</form>"
+    "<p id='status'></p>"
+    "<script>"
+    "const otaForm=document.getElementById('ota-form');"
+    "const uploadButton=document.getElementById('upload-button');"
+    "const statusText=document.getElementById('status');"
+    "otaForm.addEventListener('submit',async(e)=>{"
+    "e.preventDefault();"
+    "const fileInput=otaForm.querySelector('input[name=\"firmware\"]');"
+    "if(!fileInput||!fileInput.files||fileInput.files.length===0){statusText.textContent='Select a .bin file first.';return;}"
+    "const firmwareFile=fileInput.files[0];"
+    "uploadButton.disabled=true;"
+    "statusText.textContent='Uploading firmware...';"
+    "try{"
+    "const response=await fetch('/ota',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Firmware-Name':firmwareFile.name},body:firmwareFile});"
+    "const responseText=await response.text();"
+    "if(!response.ok){statusText.textContent='Upload failed: '+responseText;uploadButton.disabled=false;return;}"
+    "document.open();document.write(responseText);document.close();"
+    "}catch(error){"
+    "statusText.textContent='Upload failed: '+error;"
+    "uploadButton.disabled=false;"
+    "}"
+    "});"
+    "</script>"
     "</div>"
     "</body></html>";
   
@@ -299,16 +322,33 @@ static esp_err_t http_get_handler_for_ota_upload_page(httpd_req_t *http_request_
 static esp_err_t http_post_handler_for_ota_firmware_upload(httpd_req_t *http_request_structure) {
   esp_ota_handle_t ota_update_handle_for_flash_writing;
   const esp_partition_t *next_ota_partition_to_write_firmware_to = esp_ota_get_next_update_partition(NULL);
+  char content_type_header_value[64] = {0};
   
   if (next_ota_partition_to_write_firmware_to == NULL) {
     httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "No OTA partition available");
     return ESP_FAIL;
   }
+
+  if (http_request_structure->content_len <= 0) {
+    httpd_resp_send_err(http_request_structure, HTTPD_400_BAD_REQUEST, "Empty request body");
+    return ESP_FAIL;
+  }
+
+  if (httpd_req_get_hdr_value_str(http_request_structure, "Content-Type", content_type_header_value, sizeof(content_type_header_value)) == ESP_OK &&
+      strstr(content_type_header_value, "multipart/form-data") != NULL) {
+    httpd_resp_send_err(http_request_structure, HTTPD_400_BAD_REQUEST, "Use raw binary upload (refresh /ota page and retry)");
+    return ESP_FAIL;
+  }
   
-  ESP_LOGI(TAG_FOR_MAIN_APPLICATION_LOGGING, "Starting OTA update to partition: %s", next_ota_partition_to_write_firmware_to->label);
+  ESP_LOGI(TAG_FOR_MAIN_APPLICATION_LOGGING,
+           "Starting OTA update to partition: %s, content_len=%d, content_type=%s",
+           next_ota_partition_to_write_firmware_to->label,
+           http_request_structure->content_len,
+           content_type_header_value[0] ? content_type_header_value : "(none)");
   
-  esp_err_t ota_begin_result = esp_ota_begin(next_ota_partition_to_write_firmware_to, OTA_SIZE_UNKNOWN, &ota_update_handle_for_flash_writing);
+  esp_err_t ota_begin_result = esp_ota_begin(next_ota_partition_to_write_firmware_to, http_request_structure->content_len, &ota_update_handle_for_flash_writing);
   if (ota_begin_result != ESP_OK) {
+    ESP_LOGE(TAG_FOR_MAIN_APPLICATION_LOGGING, "OTA begin failed: %s", esp_err_to_name(ota_begin_result));
     httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
     return ESP_FAIL;
   }
@@ -316,35 +356,48 @@ static esp_err_t http_post_handler_for_ota_firmware_upload(httpd_req_t *http_req
   char receive_buffer_for_firmware_chunks[1024];
   int bytes_received_in_current_chunk;
   int total_bytes_received_so_far = 0;
+  int remaining_bytes_to_receive = http_request_structure->content_len;
   
-  while ((bytes_received_in_current_chunk = httpd_req_recv(http_request_structure, receive_buffer_for_firmware_chunks, sizeof(receive_buffer_for_firmware_chunks))) > 0) {
+  while (remaining_bytes_to_receive > 0) {
+    int chunk_size_to_receive = remaining_bytes_to_receive > (int)sizeof(receive_buffer_for_firmware_chunks) ? (int)sizeof(receive_buffer_for_firmware_chunks) : remaining_bytes_to_receive;
+    bytes_received_in_current_chunk = httpd_req_recv(http_request_structure, receive_buffer_for_firmware_chunks, chunk_size_to_receive);
+
+    if (bytes_received_in_current_chunk == HTTPD_SOCK_ERR_TIMEOUT) {
+      continue;
+    }
+    if (bytes_received_in_current_chunk <= 0) {
+      ESP_LOGE(TAG_FOR_MAIN_APPLICATION_LOGGING, "Receive error during OTA, recv result=%d", bytes_received_in_current_chunk);
+      esp_ota_abort(ota_update_handle_for_flash_writing);
+      httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "Receive error");
+      return ESP_FAIL;
+    }
+
     esp_err_t write_result = esp_ota_write(ota_update_handle_for_flash_writing, receive_buffer_for_firmware_chunks, bytes_received_in_current_chunk);
     if (write_result != ESP_OK) {
+      ESP_LOGE(TAG_FOR_MAIN_APPLICATION_LOGGING, "OTA write failed at offset %d: %s", total_bytes_received_so_far, esp_err_to_name(write_result));
       esp_ota_abort(ota_update_handle_for_flash_writing);
       httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA write failed");
       return ESP_FAIL;
     }
+
     total_bytes_received_so_far += bytes_received_in_current_chunk;
+    remaining_bytes_to_receive -= bytes_received_in_current_chunk;
     
     if (total_bytes_received_so_far % 10240 == 0) {
       ESP_LOGI(TAG_FOR_MAIN_APPLICATION_LOGGING, "OTA progress: %d bytes written", total_bytes_received_so_far);
     }
   }
   
-  if (bytes_received_in_current_chunk < 0) {
-    esp_ota_abort(ota_update_handle_for_flash_writing);
-    httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "Receive error");
-    return ESP_FAIL;
-  }
-  
   esp_err_t ota_end_result = esp_ota_end(ota_update_handle_for_flash_writing);
   if (ota_end_result != ESP_OK) {
+    ESP_LOGE(TAG_FOR_MAIN_APPLICATION_LOGGING, "OTA end failed: %s", esp_err_to_name(ota_end_result));
     httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA end failed");
     return ESP_FAIL;
   }
   
   esp_err_t set_boot_partition_result = esp_ota_set_boot_partition(next_ota_partition_to_write_firmware_to);
   if (set_boot_partition_result != ESP_OK) {
+    ESP_LOGE(TAG_FOR_MAIN_APPLICATION_LOGGING, "Set boot partition failed: %s", esp_err_to_name(set_boot_partition_result));
     httpd_resp_send_err(http_request_structure, HTTPD_500_INTERNAL_SERVER_ERROR, "Set boot partition failed");
     return ESP_FAIL;
   }

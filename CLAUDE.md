@@ -17,6 +17,8 @@ Your first action is to read BOOTSTRAP.md to see if the necessary set up steps h
 
 [] Bootstrap complete
 
+Arduino CLI Path: <add here>
+
 ## BOARD DETAILS
 
 Read BOARD.md for full details about the ESP32-C3 0.42 board that you will be working with.

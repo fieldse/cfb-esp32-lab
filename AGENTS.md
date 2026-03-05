@@ -16,5 +16,3 @@ This repo ships with a starter project that allows you to connect to the board o
 Read BOOTSTRAP.md to see if the necessary set up steps have been completed. The board comes pre-flashed with the starter project so WiFi flashing is available from the start — a USB data cable is optional. You are responsible for completing bootstrap steps on behalf of the user — including installing Arduino CLI if needed. Mark bootstrap complete below when fully set up.
 
 [] Bootstrap complete
-
-

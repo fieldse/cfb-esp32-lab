@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(arduino-cli:*)",
+      "Bash(/opt/homebrew/bin/arduino-cli:*)",
       "Bash(esptool:*)",
       "Bash(esptool.py:*)",
       "Bash(python3:*)",
@@ -65,7 +66,8 @@
       "Bash(dfu-util:*)",
       "Bash(port:*)",
       "Bash(ls /dev/tty*:*)",
-      "Bash(ls /dev/cu*:*)"
+      "Bash(ls /dev/cu*:*)",
+      "Bash(ls /dev/cu.usbmodem*)"
     ],
     "deny": [
       "Bash(rm -rf:*)",

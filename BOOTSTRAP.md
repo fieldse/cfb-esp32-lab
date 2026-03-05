@@ -6,8 +6,9 @@ This file is for the agent. Work through each step silently. Keep the user infor
 
 ## Step 1: Arduino CLI
 
-1. Run `arduino-cli version`. If it succeeds, mark done and continue.
-2. If not found, detect OS:
+1. Locate `arduino-cli` using: `which arduino-cli || find /usr /opt /home/$USER ~/bin -name arduino-cli 2>/dev/null | head -1`
+2. If found, record the full path. If `arduino-cli version` works without a full path, use `arduino-cli`. Otherwise use the full path for all subsequent commands.
+3. If not found, detect OS and install:
    - Run `uname` → `Darwin` = macOS, `Linux` = Linux
    - On Windows: `$env:OS` returns `Windows_NT`
 3. Install:
@@ -24,8 +25,12 @@ This file is for the agent. Work through each step silently. Keep the user infor
    - `winget --version` — if found: `winget install Arduino.ArduinoCLI`
    - If no winget: download `https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip`, extract, add to PATH
 
-4. Confirm: `arduino-cli version`
-5. Install ESP32 core:
+4. Confirm it works, then record the resolved path in CLAUDE.md under the `## TOOLS` section, replacing the `<!-- BOOTSTRAP WILL FILL THIS IN -->` comment with:
+   ```
+   - `arduino-cli` path: <full path> — always use this full path, do not assume it is on PATH.
+   - ESP32 core status: <installed/not installed>
+   ```
+5. Install ESP32 core if not already present:
    ```
    arduino-cli core update-index --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
    arduino-cli core install esp32:esp32 --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
@@ -65,6 +70,7 @@ The board is pre-flashed with the starter project. When powered on it connects t
 
 ## Done
 
-Once all steps are checked, update the bootstrap status in CLAUDE.md:
+Once all steps are checked, update CLAUDE.md:
 - Change `[] Bootstrap complete` to `[x] Bootstrap complete`
+- Ensure the `## TOOLS` section has been filled in with the detected arduino-cli path and ESP32 core status
 - Do not bother the user with details — just let them know they're ready to go
