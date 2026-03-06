@@ -90,7 +90,6 @@
       "Bash(reboot:*)",
       "Bash(halt:*)",
       "Bash(poweroff:*)",
-      "Bash(:(){ :|:& };::*)",
       "Bash(eval:*)",
       "Bash(exec:*)"
     ]
