@@ -14,7 +14,7 @@ This repo is intended to be self-driving to get the user started with minimal fu
 
 Your first action is to read BOOTSTRAP.md to see if the necessary set up steps have been completed. The board comes pre-flashed with the starter project so WiFi flashing is available from the start — a USB data cable is optional. You are responsible for completing bootstrap steps on behalf of the user — including installing Arduino CLI if needed. Mark bootstrap complete below when fully set up. If marked complete, there is no need to read BOOTSTRAP.md
 
-[] Bootstrap complete
+[x] Bootstrap complete
 
 ## CLI Path
 
@@ -22,11 +22,11 @@ Arduino CLI Path: /opt/homebrew/bin/arduino-cli
 
 ## FLASHING
 
-To find the port and FQBN:
-1. Run `arduino-cli board list` to find the connected port and its reported FQBN.
-2. If the FQBN is generic (e.g. contains `family`), it won't support options like `CDCOnBoot`. In that case, run `arduino-cli board listall | grep -i "esp32c3"` to find the specific FQBN for the chip (see BOARD.md for chip details), and use that instead.
+**Current board:** DFRobot FireBeetle 2 ESP32-C6
+**Port:** `/dev/cu.usbmodem1101`
+**FQBN:** `esp32:esp32:dfrobot_firebeetle2_esp32c6`
 
-If the user has a different model of ESP32 attached then adapt accordingly
+Use these values for all compilation and upload commands.
 
 ## SERIAL DEBUGGING
 
@@ -46,4 +46,5 @@ Use these credentials whenever a sketch needs WiFi connectivity:
 
 ## BOARD DETAILS
 
-Read BOARD.md for full details about the ESP32-C3 0.42 board that you will be working with.
+You are working with a **DFRobot FireBeetle 2 ESP32-C6** board.
+See: https://wiki.dfrobot.com/dfr1075/
