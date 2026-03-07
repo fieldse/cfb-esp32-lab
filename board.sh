@@ -103,7 +103,8 @@ function upload() {
   (echo "cp $file /pyboard/$dest"; sleep 0.5; echo "exit") | "$RSHELL" -p "$PORT"
 
   if [ $? -eq 0 ]; then
-    echo "[+] Upload complete! Reset the board to run: ./board.sh reset"
+    echo "[+] Upload complete!"
+    reset
   else
     echo "[-] Upload failed"
     return 1
