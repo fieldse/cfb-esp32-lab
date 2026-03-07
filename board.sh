@@ -9,6 +9,7 @@
 
 RSHELL="$HOME/Library/Python/3.9/bin/rshell"
 ESPTOOL="$HOME/Library/Python/3.9/bin/esptool.py"
+MPREMOTE="$HOME/Library/Python/3.9/bin/mpremote"
 PORT="/dev/cu.usbmodem1101"
 CHIP="esp32c6"
 BAUD="460800"
@@ -30,12 +31,14 @@ function usage() {
   echo "  upload <file>      Upload a Python script to board (e.g., main.py)"
   echo "  repl               Open interactive MicroPython REPL"
   echo "  monitor            Watch serial output (no interaction)"
+  echo "  reset              Reset the board"
   echo ""
   echo "Examples:"
   echo "  $0 test"
   echo "  $0 flash"
-  echo "  $0 upload main.py"
+  echo "  $0 upload scripts/main.py"
   echo "  $0 repl"
+  echo "  $0 reset"
 }
 
 # ============================================================================
@@ -145,6 +148,14 @@ function test() {
   fi
 }
 
+# Reset the board via MicroPython
+# Equivalent to unplugging and replugging the board
+function reset() {
+  echo "[+] Resetting board..."
+  "$MPREMOTE" connect "$PORT" reset + disconnect
+  echo "[+] Board reset"
+}
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -155,5 +166,6 @@ case "$1" in
   upload)   shift; upload "$@" ;;
   repl)     repl ;;
   monitor)  monitor ;;
+  reset)    reset ;;
   *)        usage ;;
 esac
