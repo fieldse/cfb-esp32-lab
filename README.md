@@ -35,7 +35,7 @@ The agent will take it from there — installing any tools needed and connecting
 
 ## The board
 
-Workshop boards are the **ESP32-C3** with a 0.42" OLED display. They come pre-flashed with a starter project that connects to WiFi and shows the board's IP address on screen, enabling wireless flashing from the start.
+Workshop boards are the **DFRobot FireBeetle 2 ESP32-C6** running MicroPython. Full hardware reference is in `BOARD.md`.
 
 If you brought your own ESP32, that works too — let your agent know what board you have.
 
@@ -44,19 +44,21 @@ If you brought your own ESP32, that works too — let your agent know what board
 ## How it works
 
 1. Agent checks your setup and installs anything missing
-2. Agent flashes hello world sketch to the board
-3. You describe what you want to build
-4. Agent writes the code, compiles it, and flashes it to your board wirelessly
-5. Repeat
+2. You describe what you want to build
+3. Agent writes the code and uploads it to your board
+4. Repeat
 
 ---
 
 ## Repo structure
 
 ```
-CLAUDE.md       — instructions for your coding agent
-AGENTS.md       — same, for non-Claude agents
-BOOTSTRAP.md    — setup checklist (agent use only)
-BOARD.md        — hardware reference for the ESP32-C3 board
-sketches/hello_oled — starter project source
+BOARD.md              — hardware reference (pinout, GPIO, chip specs)
+CLAUDE.md             — instructions for your coding agent
+AGENTS.md             — same, for non-Claude agents
+board.sh              — CLI for board operations (test/repl/upload/flash/monitor)
+scripts/              — MicroPython Python scripts
+sketches/             — Arduino C sketches
+firmware/             — MicroPython firmware .bin
+docs/                 — reference docs and cheatsheets
 ```
