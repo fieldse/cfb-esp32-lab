@@ -41,9 +41,10 @@ Serial debugging in Arduino sketches:
 - Append `:CDCOnBoot=cdc` to FQBN — required as the board has no separate USB-UART chip
 
 ## WORKSHOP WIFI
+Get these from the .env file in project root.
 
-- SSID: `cfb`
-- Password: `cfb_1958!`
+- WIFI_SSID
+- WIFI_PASSWORD
 
 ## REPO STRUCTURE
 

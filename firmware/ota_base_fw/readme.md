@@ -7,7 +7,9 @@ This project sub-folder is for preparing a workshop teaching people how to progr
 ### Workshop Challenge
 Many participants may bring power-only USB-C cables that cannot transfer data. The solution is to pre-flash boards with firmware that:
 1. Connects to WiFi networks:
-   - **Workshop**: SSID: `cfb`, Password: `cfb_1958!`
+   Get these from the .env file in project root:
+    - WIFI_SSID
+    - WIFI_PASSWORD
 2. Enables OTA firmware updates over WiFi
 3. Displays the board's mDNS hostname and IP on the OLED screen (e.g., `esp32-384be46.local` and `192.168.1.123`)
 4. Allows participants to flash new firmware using only WiFi (no data cable needed)
