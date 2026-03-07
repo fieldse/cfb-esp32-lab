@@ -137,42 +137,6 @@ Can use GPIO9, 10, 20, 21 for SPI (tested and confirmed working)
 - **No Native USB HID**: ESP32-C3 doesn't support USB HID/MIDI/MSC natively
 - **Display Quirks**: Some units may need display reinitialization after power cycle
 
-## ESP-IDF Installation
-
-### Windows Installation (Recommended for this project)
-ESP-IDF v5.5.3 is installed at: `C:\Espressif\frameworks\esp-idf-v5.5.3`
-
-**Key Paths**:
-- **Python**: `C:\Espressif\python_env\idf5.5_py3.11_env\Scripts\python.exe` (Python 3.11.2)
-- **OpenOCD**: `C:\Espressif\tools\openocd-esp32\v0.12.0-esp32-20251215\openocd-esp32\bin\openocd.exe`
-- **OpenOCD Scripts**: `C:\Espressif\tools\openocd-esp32\v0.12.0-esp32-20251215\openocd-esp32\share\openocd\scripts`
-- **Git**: `C:\Espressif\tools\idf-git\2.44.0\cmd\git.exe` (git 2.44.0)
-- **IDF Tools**: `C:\Espressif\tools\`
-
-**Activating ESP-IDF Environment**:
-```batch
-call C:\Espressif\frameworks\esp-idf-v5.5.3\export.bat
-```
-
-After activation, you'll have access to:
-- `idf.py` - ESP-IDF build tool
-- `esptool.py` - Flash programming tool
-- `openocd` - Debug and JTAG tool
-- RISC-V toolchain for ESP32-C3
-
-### WSL1 Installation (Not recommended for this project)
-ESP-IDF v5.2 is installed at: `/home/cnd/esp/esp-idf`
-
-**Activating ESP-IDF Environment**:
-```bash
-source /home/cnd/esp/esp-idf/export.sh
-```
-
-**Critical Limitation**: WSL1 has severe issues with:
-- Serial port access (write timeouts with esptool.py)
-- USB device access (OpenOCD cannot see JTAG interface)
-- **Use Windows native tools instead**
-
 ## Working with OpenOCD and JTAG (Recommended Method)
 
 ### Why Use OpenOCD Instead of Serial?
