@@ -119,13 +119,16 @@ esptool.py --chip esp32c6 -p /dev/cu.usbmodem1101 --baud 460800 write_flash -z 0
 
 ### Access the MicroPython REPL
 
-Once flashed, open a serial terminal at 115200 baud:
+Once flashed, use `rshell` to connect:
 
 ```bash
-/opt/homebrew/bin/arduino-cli monitor -p /dev/cu.usbmodem1101 --config baudrate=115200
+rshell -p /dev/cu.usbmodem1101
+> repl
 ```
 
-Press Enter a few times — you should see the `>>>` prompt. You can now type Python commands directly!
+You should see the `>>>` prompt. You can now type Python commands directly!
+
+To exit the REPL, press `Ctrl+X`, then type `exit` to close rshell.
 
 Example:
 ```python
