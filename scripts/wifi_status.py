@@ -35,15 +35,26 @@ def load_env(path=".env"):
 
 def halt(message):
     """Print an error and idle forever to avoid soft reboot loops."""
-    print(f"[-] {message} — halting")
     while True:
-        time.sleep(10)
+        print(f"[-] {message} — process halted")
+        time.sleep(2)
 
 
 def wifi_status_message(wlan):
     """Return a human-readable string for the current WLAN status code."""
     code = wlan.status()
     return WIFI_STATUS.get(code, f"unknown error (code {code})")
+
+def load_envs():
+    """Load WiFi SSID and password from .env file. Halts if either is missing."""
+    env = load_env(".env")
+    ssid = env.get("WIFI_SSID")
+    password = env.get("WIFI_PASSWORD")
+    if not ssid:
+        halt("WIFI_SSID is missing or empty in .env")
+    if not password:
+        halt("WIFI_PASSWORD is missing or empty in .env")
+    return ssid, password
 
 
 def connect_wifi(ssid, password):
@@ -61,16 +72,28 @@ def connect_wifi(ssid, password):
         print(f"[+] Connecting to {ssid}...")
         wlan.connect(ssid, password)
 
-        # Wait for connection up to CONNECT_TIMEOUT_S
+        # Wait for isconnected() up to CONNECT_TIMEOUT_S
         for _ in range(CONNECT_TIMEOUT_S * 2):
             if wlan.isconnected():
                 break
+            print(".", end="", flush=True)
             time.sleep(0.5)
+        print()
+        print(f"[.] isconnected: {wlan.isconnected()}")
 
-        if not wlan.isconnected():
+        # Wait for status() == 1001 (STAT_GOT_IP) — ESP32-C6 can lag behind isconnected()
+        for _ in range(CONNECT_TIMEOUT_S * 2):
+            if wlan.status() == 1001:
+                break
+            print(".", end="", flush=True)
+            time.sleep(0.5)
+        print()
+        print(f"[.] status: {wlan.status()}")
+
+        if not wlan.isconnected() and wlan.status() != 1001:
             status = wlan.status()
-            reason = WIFI_STATUS.get(status, f"timed out (status {status})")
-            print(f"[-] Connection failed: {reason}")
+            reason = WIFI_STATUS.get(status, "unknown error")
+            print(f"[-] Connection failed: {reason} (status {status})")
             print(f"[+] Retrying in {RETRY_DELAY_S}s...")
             wlan.disconnect()
             time.sleep(RETRY_DELAY_S)
@@ -94,14 +117,8 @@ def connect_wifi(ssid, password):
 
 
 def main():
-    env = load_env(".env")
-    ssid = env.get("WIFI_SSID")
-    password = env.get("WIFI_PASSWORD")
-
-    if not ssid:
-        halt("WIFI_SSID is missing or empty in .env")
-    if not password:
-        halt("WIFI_PASSWORD is missing or empty in .env")
+    print(f"========= Wifi connecting ========\n")
+    ssid, password = load_envs()
 
     wlan = connect_wifi(ssid, password)
     print("[+] Connected!")
@@ -109,7 +126,7 @@ def main():
     while True:
         try:
             # Detect connection drop and reconnect
-            if not wlan.isconnected():
+            if not wlan.isconnected() and wlan.status() != 1001:
                 print("[-] Connection lost — reconnecting...")
                 wlan = connect_wifi(ssid, password)
                 print("[+] Reconnected!")
