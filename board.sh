@@ -7,12 +7,12 @@
 # Configuration Constants
 # ============================================================================
 
-RSHELL="/opt/homebrew/bin/rshell"
+RSHELL="$HOME/Library/Python/3.9/bin/rshell"
 ESPTOOL="$HOME/Library/Python/3.9/bin/esptool.py"
 PORT="/dev/cu.usbmodem1101"
 CHIP="esp32c6"
 BAUD="460800"
-FIRMWARE_DIR="$HOME/Downloads"
+FIRMWARE_DIR="./firmware"
 
 # ============================================================================
 # Helper Functions
