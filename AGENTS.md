@@ -40,10 +40,12 @@ This is required because the board has no separate USB-UART chip — `CDCOnBoot=
 
 ## WORKSHOP WIFI
 
-Use these credentials whenever a sketch needs WiFi connectivity:
+~~Use these credentials whenever a sketch needs WiFi connectivity:~~
 
-- SSID: `cfb`
-- Password: `cfb_1958!`
+_EDIT: this is not accurate for the user's environment. ask them for wifi credentials_
+
+- ~~SSID: `cfb`~~
+- ~~Password: `cfb_1958!`~~
 
 ## BOARD DETAILS
 

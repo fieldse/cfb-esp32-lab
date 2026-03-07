@@ -1,57 +1,128 @@
-## BOARD DETAILS
+# BOARD DETAILS
 
-**Board:** AI-Thinker ESP32-C3 0.42" OLED Dev Board (ESP32-C3 Mini OLED)
+**Board:** DFRobot FireBeetle 2 ESP32-C6 (DFR1075)
 
-![Board pinout](esp32-C3.jpeg)
+[Board documentation](https://wiki.dfrobot.com/dfr1075/)
 
-IMPORTANT: If the user has a different model of ESP32 attached then adapt accordingly.
+---
 
-### Chip
+## Chip
+
 | Item | Detail |
 |------|--------|
-| Chip | ESP32-C3 (QFN32), revision v0.4 |
+| Chip | ESP32-C6FH4 (QFN32), revision v0.2 |
 | Architecture | 32-bit RISC-V, single core, 160 MHz |
-| Flash | 4 MB embedded (XMC, Manufacturer: 0x46, Device: 0x4016) |
+| Flash | 8 MB (supports up to 16 MB) |
+| RAM | 512 KB |
 | Crystal | 40 MHz |
-| Wi-Fi | 2.4 GHz 802.11 b/g/n |
-| Bluetooth | BLE 5.0 |
-| USB | Native USB-Serial/JTAG via USB-C (no CH340 chip) |
+| Wi-Fi | Wi-Fi 6, 2.4 GHz 802.11 b/g/n |
+| Bluetooth | BLE 5.0, 802.15.4 (Zigbee/Thread) |
+| USB | USB-Serial/JTAG (native, no separate UART chip) |
 
-### Onboard OLED
+---
+
+## Onboard LED
+
 | Item | Detail |
 |------|--------|
-| Size | 0.42 inch |
-| Resolution | 72 × 40 px |
-| Protocol | I²C (internal wiring) |
-| SDA | GPIO5 |
-| SCL | GPIO6 |
+| Type | Blue indicator LED |
+| GPIO | GPIO15 |
+| Logic | Active **HIGH** (HIGH = on, LOW = off) |
+| Notes | Connected to the blue LED on the board |
 
-> Note: header labels on the board show GPIO5/6 as MISO/MOSI (SPI labels) but the OLED uses them as I²C internally. Treat GPIO5/6 as reserved for the display.
+---
 
-### Pin Map
-| Pin | Left header | | Right header | Pin |
-|-----|-------------|---|--------------|-----|
-| — | 5V | | GPIO10 | 10 |
-| — | GND | | GPIO9 (SCL/IIC) | 9 |
-| — | 3V3 | | GPIO8 (SDA/IIC) | 8 |
-| 20 | GPIO20 (RX/UART) | | GPIO7 (SS/SPI) | 7 |
-| 21 | GPIO21 (TX/UART) | | GPIO6 (MOSI/SPI) ⚠ OLED SCL | 6 |
-| 2 | GPIO2 (A2/ADC) | | GPIO5 (MISO/SPI) ⚠ OLED SDA | 5 |
-| 1 | GPIO1 (A1/ADC) | | GPIO4 (A4/ADC) | 4 |
-| 0 | GPIO0 (A0/ADC) | | GPIO3 (A3/ADC) | 3 |
-| — | BOOT button | | RST button | — |
+## Onboard Button
 
-### Onboard RGB LED
 | Item | Detail |
 |------|--------|
-| Type | WS2812B (NeoPixel addressable RGB) |
-| GPIO | GPIO2 |
-| Library | Adafruit NeoPixel |
-| Notes | Shows red when powered on by default; GPIO2 is also ADC channel A2 — avoid using it for analog input if the LED is active |
+| Type | BOOT button (programmable as general GPIO) |
+| GPIO | GPIO9 |
+| Logic | Active **LOW** (pulled up internally, LOW when pressed) |
+| Pull-up | Internal pull-up enabled |
 
-### Key notes for programming
-- **Flash mode:** QIO, 80 MHz; 4 MB flash
-- **Flashing:** hold BOOT, press RST, release RST, then release BOOT (if auto-download fails)
-- **OLED:** SSD1306 driver, I²C address `0x3C`, 72×40 px, SDA=GPIO5, SCL=GPIO6
-- **ADC:** GPIO0–GPIO4 are ADC1 channels; avoid GPIO5/6 for ADC (reserved for OLED)
+---
 
+## GDI Display Connector (18-pin)
+
+The FireBeetle 2 comes with a dedicated connector for plug-and-play LCD/OLED displays.
+
+| Pin | Signal | GPIO | Notes |
+|-----|--------|------|-------|
+| 1 | GND | — | Ground |
+| 2 | 5V | — | 5V power (regulated to 3.3V for display) |
+| 3 | SDA | GPIO5 | I²C data line |
+| 4 | SCL | GPIO6 | I²C clock line |
+| 5 | D/C | GPIO8 | Data/Command for SPI mode |
+| 6 | CS | GPIO7 | Chip Select for SPI mode |
+| 7 | CLK | GPIO4 | SPI clock |
+| 8 | MOSI | GPIO3 | SPI data out |
+| 9 | MISO | GPIO2 | SPI data in |
+| 10-18 | (reserved/power) | — | Additional signals for specific displays |
+
+**Common display modes:**
+- **I²C:** Uses GPIO5 (SDA) and GPIO6 (SCL) — simplest for small OLEDs
+- **SPI:** Uses GPIO7 (CS), GPIO8 (D/C), GPIO4 (CLK), GPIO3 (MOSI), GPIO2 (MISO)
+
+---
+
+## General-Purpose GPIO
+
+| GPIO | Function | Notes |
+|------|----------|-------|
+| GPIO0–GPIO4 | General I/O + ADC | Can be used for analog input or digital I/O |
+| GPIO5, GPIO6 | Reserved for GDI display I²C | Avoid using for other purposes if display is connected |
+| GPIO7 | General I/O | Also GDI CS if using SPI displays |
+| GPIO8 | General I/O | Also GDI D/C if using SPI displays |
+| GPIO9 | BOOT button | Can be programmed as general GPIO |
+| GPIO15 | Onboard blue LED | Can be programmed but used for status LED by default |
+
+---
+
+## Power
+
+| Feature | Detail |
+|---------|--------|
+| Input voltage | 5V (USB) or 3.7V–4.2V (Li-Po battery) |
+| USB power | Yes (USB-C) |
+| Battery connector | JST 2.0 |
+| Charge management | On-board charging circuit |
+| Charging LED | Shows charging status |
+| Voltage regulator | LDO to 3.3V |
+
+---
+
+## Key Programming Notes
+
+### Arduino CLI
+- **FQBN:** `esp32:esp32:dfrobot_firebeetle2_esp32c6:CDCOnBoot=cdc`
+- **Board:** DFRobot FireBeetle 2 ESP32-C6
+- **Port:** `/dev/cu.usbmodem1101` (may vary; use `arduino-cli board list` to find)
+- **Serial:** Use `:CDCOnBoot=cdc` to enable USB serial debugging
+- **Baud rate:** 115200
+
+### MicroPython
+- **Firmware:** Download `ESP32_GENERIC_C6` (RISC-V, not Xtensa)
+- **Do NOT use:** Generic ESP32 firmware — the C6 has a different architecture
+- **REPL access:** Use `rshell -p /dev/cu.usbmodem1101` then `repl`
+
+### GPIO Constraints
+- **LED (GPIO15):** Active HIGH — `digitalWrite(15, HIGH)` turns on the LED
+- **Button (GPIO9):** Active LOW — reads as LOW when pressed (internal pull-up)
+- **Display I²C (GPIO5/6):** Reserved if using GDI connector
+- **ADC:** GPIO0–GPIO4 support ADC input; use `analogRead()` or MicroPython's `ADC` class
+
+### USB Connection
+- **No separate UART chip** — USB-CDC runs natively over USB
+- Ensure sketches call `Serial.begin(115200)` + `delay(1500)` at startup
+- Append `:CDCOnBoot=cdc` to FQBN in Arduino for reliable serial
+- MicroPython: USB CDC is active by default after flashing
+
+---
+
+## Useful References
+
+- [DFRobot Wiki (DFR1075)](https://wiki.dfrobot.com/dfr1075/)
+- [ESP32-C6 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c6_datasheet_en.pdf)
+- [MicroPython ESP32-C6 Firmware](https://micropython.org/download/ESP32_GENERIC_C6/)
+- [Arduino ESP32 Core](https://github.com/espressif/arduino-esp32)
