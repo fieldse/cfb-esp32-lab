@@ -1,59 +1,159 @@
 #!/bin/bash
-# Convenience script for compiling, uploading sketches, and connecting to serial TTY
-# with the arduino-cli toolkit
 
-ARDUINO=/opt/homebrew/bin/arduino-cli
-FQBN="esp32:esp32:dfrobot_firebeetle2_esp32c6:CDCOnBoot=cdc"
+# MicroPython convenience script for the FireBeetle 2 ESP32-C6
+# Handles flashing firmware, uploading scripts, and REPL access
+
+# ============================================================================
+# Configuration Constants
+# ============================================================================
+
+RSHELL="/opt/homebrew/bin/rshell"
+ESPTOOL="$HOME/Library/Python/3.9/bin/esptool.py"
 PORT="/dev/cu.usbmodem1101"
-SKETCHES_DIR="$(dirname "$0")/sketches"
+CHIP="esp32c6"
+BAUD="460800"
+FIRMWARE_DIR="$HOME/Downloads"
 
-usage() {
-  echo "Usage: $0 [--compile <sketch>] [--upload <sketch>] [--monitor]"
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+# Print usage information
+function usage() {
+  echo "MicroPython board tools for FireBeetle 2 ESP32-C6"
   echo ""
-  echo "  --compile <sketch>   Compile a sketch (e.g. hello_oled)"
-  echo "  --upload <sketch>    Compile and upload a sketch"
-  echo "  --serial             Open serial monitor at 115200 baud"
+  echo "Usage: $0 [command] [options]"
   echo ""
-  echo "Available sketches:"
-  for d in "$SKETCHES_DIR"/*/; do echo "  $(basename "$d")"; done
+  echo "Commands:"
+  echo "  test               Test board connectivity and get chip info"
+  echo "  flash              Flash MicroPython firmware to board"
+  echo "  upload <file>      Upload a Python script to board (e.g., main.py)"
+  echo "  repl               Open interactive MicroPython REPL"
+  echo "  monitor            Watch serial output (no interaction)"
+  echo ""
+  echo "Examples:"
+  echo "  $0 test"
+  echo "  $0 flash"
+  echo "  $0 upload main.py"
+  echo "  $0 repl"
 }
 
-# Compile a sketch without uploading
-# Args: $1 = sketch name (e.g., "hello_oled")
-compile() {
-  local sketch="$SKETCHES_DIR/$1"
-  if [ ! -d "$sketch" ]; then
-    echo "[error] sketch '$1' not found in $SKETCHES_DIR"
-    exit 1
+# ============================================================================
+# Commands
+# ============================================================================
+
+# Flash MicroPython firmware onto the board
+# Erases existing flash and writes new MicroPython binary
+function flash() {
+  echo "[+] Looking for MicroPython firmware in $FIRMWARE_DIR..."
+
+  FIRMWARE=$(ls -t "$FIRMWARE_DIR"/ESP32_GENERIC_C6*.bin 2>/dev/null | head -1)
+
+  if [ -z "$FIRMWARE" ]; then
+    echo "[-] No ESP32_GENERIC_C6 firmware found in $FIRMWARE_DIR"
+    echo "[!] Download from: https://micropython.org/download/ESP32_GENERIC_C6/"
+    return 1
   fi
-  echo "[+] Compiling $1..."
-  "$ARDUINO" compile --fqbn "$FQBN" "$sketch"
-  if [ $? -eq 0 ]; then echo "[+] compile OK"; else echo "[-] compilation failed"; fi
+
+  echo "[+] Found: $(basename "$FIRMWARE")"
+  echo "[+] Erasing flash..."
+  "$ESPTOOL" --chip "$CHIP" -p "$PORT" erase_flash || return 1
+
+  echo "[+] Flashing MicroPython..."
+  "$ESPTOOL" --chip "$CHIP" -p "$PORT" --baud "$BAUD" write_flash -z 0x0 "$FIRMWARE" || return 1
+
+  echo "[+] Flash complete!"
+  echo "[!] Board will reboot. Wait a moment, then run: $0 repl"
 }
 
-# Compile and upload a sketch to the board
-# Args: $1 = sketch name (e.g., "button_press")
-upload() {
-  local sketch="$SKETCHES_DIR/$1"
-  if [ ! -d "$sketch" ]; then
-    echo "[error] sketch '$1' not found in $SKETCHES_DIR"
-    exit 1
+# Upload a Python script to the board
+# Args: $1 = filename (e.g., main.py)
+function upload() {
+  local file="$1"
+
+  if [ -z "$file" ]; then
+    echo "[-] Usage: $0 upload <filename>"
+    echo "Example: $0 upload main.py"
+    return 1
   fi
-  echo "[+] Uploading $1..."
-  "$ARDUINO" upload -p "$PORT" --fqbn "$FQBN" "$sketch"
-  if [ $? -eq 0 ]; then echo "[+] upload OK"; else echo "[-] upload failed"; fi
+
+  if [ ! -f "$file" ]; then
+    echo "[-] File not found: $file"
+    return 1
+  fi
+
+  echo "[+] Uploading $file to board..."
+
+  # Use rshell to copy file and exit
+  (echo "cp $file /pyboard/"; sleep 0.5; echo "exit") | "$RSHELL" -p "$PORT"
+
+  if [ $? -eq 0 ]; then
+    echo "[+] Upload complete!"
+    echo "[!] Reboot board to run: import machine; machine.reset()"
+  else
+    echo "[-] Upload failed"
+    return 1
+  fi
 }
 
-# Open serial monitor to view board output (115200 baud)
-connect_serial() {
-  echo "[+] Opening serial monitor on $PORT (Ctrl+C to exit)..."
-  "$ARDUINO" monitor -p "$PORT" --config baudrate=115200
-  echo "[+] serial connection closed"
+# Open interactive MicroPython REPL
+# Access the Python prompt for live testing and debugging
+function repl() {
+  echo "[+] Opening MicroPython REPL (Ctrl+X to exit)"
+  echo ""
+  "$RSHELL" -p "$PORT"
+  echo ""
+  echo "[+] REPL closed"
 }
+
+# Monitor serial output without interaction
+# Useful for watching a script run
+function monitor() {
+  echo "[+] Monitoring serial output (Ctrl+C to exit)..."
+  echo ""
+  # Use rshell's built-in serial monitoring or fall back to arduino-cli
+  /opt/homebrew/bin/arduino-cli monitor -p "$PORT" --config baudrate=115200
+}
+
+# Test board connectivity and get chip information
+# Non-destructive check to verify board is connected and responding
+function test() {
+  echo "[+] Testing board connectivity on $PORT..."
+  echo ""
+
+  # Check if port exists
+  if [ ! -e "$PORT" ]; then
+    echo "[-] Port $PORT not found"
+    echo "[!] Check connection or try: ls /dev/cu.usbmodem*"
+    return 1
+  fi
+
+  echo "[+] Port exists"
+
+  # Get chip ID and info with esptool
+  echo "[+] Reading chip info..."
+  "$ESPTOOL" --chip "$CHIP" -p "$PORT" chip_id
+
+  if [ $? -eq 0 ]; then
+    echo ""
+    echo "[+] Board is connected and responding!"
+    return 0
+  else
+    echo ""
+    echo "[-] Failed to read chip info"
+    return 1
+  fi
+}
+
+# ============================================================================
+# Main
+# ============================================================================
 
 case "$1" in
-  --compile) shift; compile "$1" ;;
-  --upload)  shift; upload "$1" ;;
-  --serial) connect_serial ;;
-  *) usage ;;
+  test)     test ;;
+  flash)    flash ;;
+  upload)   shift; upload "$@" ;;
+  repl)     repl ;;
+  monitor)  monitor ;;
+  *)        usage ;;
 esac
