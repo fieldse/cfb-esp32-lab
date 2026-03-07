@@ -31,6 +31,7 @@ function usage() {
   echo "  upload <file>      Upload a Python script to board (e.g., main.py)"
   echo "  repl               Open interactive MicroPython REPL"
   echo "  serial             Watch serial output (no interaction)"
+  echo "  upload-env         Upload .env to board (required for WiFi scripts)"
   echo "  reset              Reset the board"
   echo ""
   echo "Examples:"
@@ -160,6 +161,27 @@ function test() {
   fi
 }
 
+# Upload the .env file to the board's filesystem
+# Required for scripts that read WiFi credentials or other config
+function upload_env() {
+  local env_file=".env"
+
+  if [ ! -f "$env_file" ]; then
+    echo "[-] No .env file found in current directory"
+    return 1
+  fi
+
+  echo "[+] Uploading .env to board..."
+  (echo "cp $env_file /pyboard/.env"; sleep 0.5; echo "exit") | "$RSHELL" -p "$PORT"
+
+  if [ $? -eq 0 ]; then
+    echo "[+] .env uploaded"
+  else
+    echo "[-] Failed to upload .env"
+    return 1
+  fi
+}
+
 # Reset the board via MicroPython
 # Equivalent to unplugging and replugging the board
 function reset() {
@@ -178,6 +200,7 @@ case "$1" in
   upload)   shift; upload "$@" ;;
   repl)     repl ;;
   serial)   connect_serial ;;
+  upload-env) upload_env ;;
   reset)    reset ;;
   *)        usage ;;
 esac
