@@ -3,6 +3,7 @@
 #define BUTTON_PIN 9
 
 bool lastButtonState = HIGH;
+int pressCount = 0;
 
 void setup()
 {
@@ -20,7 +21,9 @@ void loop()
   // Detect transition from HIGH (released) to LOW (pressed)
   if (lastButtonState == HIGH && currentButtonState == LOW)
   {
-    Serial.println("Button pressed!");
+    pressCount++;
+    Serial.print("Button pressed! Count: ");
+    Serial.println(pressCount);
     delay(20); // simple debounce
   }
 
