@@ -30,7 +30,7 @@ function usage() {
   echo "  flash              Flash MicroPython firmware to board"
   echo "  upload <file>      Upload a Python script to board (e.g., main.py)"
   echo "  repl               Open interactive MicroPython REPL"
-  echo "  monitor            Watch serial output (no interaction)"
+  echo "  serial             Watch serial output (no interaction)"
   echo "  reset              Reset the board"
   echo ""
   echo "Examples:"
@@ -70,13 +70,26 @@ function flash() {
 }
 
 # Upload a Python script to the board
-# Args: $1 = filename (e.g., main.py)
+# Defaults to uploading as main.py (runs automatically on boot)
+# Args: $1 = local filename (e.g., scripts/hello_count.py)
+#       --name <name>  optional destination filename (default: main.py)
 function upload() {
   local file="$1"
+  local dest="main.py"
+  shift
+
+  # Parse optional --name flag
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --name) dest="$2"; shift 2 ;;
+      *) echo "[-] Unknown option: $1"; return 1 ;;
+    esac
+  done
 
   if [ -z "$file" ]; then
-    echo "[-] Usage: $0 upload <filename>"
-    echo "Example: $0 upload main.py"
+    echo "[-] Usage: $0 upload <filename> [--name <dest>]"
+    echo "Example: $0 upload scripts/hello_count.py"
+    echo "Example: $0 upload scripts/button_press.py --name button_press.py"
     return 1
   fi
 
@@ -85,14 +98,12 @@ function upload() {
     return 1
   fi
 
-  echo "[+] Uploading $file to board..."
+  echo "[+] Uploading $file to board as $dest..."
 
-  # Use rshell to copy file and exit
-  (echo "cp $file /pyboard/"; sleep 0.5; echo "exit") | "$RSHELL" -p "$PORT"
+  (echo "cp $file /pyboard/$dest"; sleep 0.5; echo "exit") | "$RSHELL" -p "$PORT"
 
   if [ $? -eq 0 ]; then
-    echo "[+] Upload complete!"
-    echo "[!] Reboot board to run: import machine; machine.reset()"
+    echo "[+] Upload complete! Reset the board to run: ./board.sh reset"
   else
     echo "[-] Upload failed"
     return 1
@@ -111,7 +122,7 @@ function repl() {
 
 # Monitor serial output without interaction
 # Useful for watching a script run
-function monitor() {
+function connect_serial() {
   echo "[+] Monitoring serial output (Ctrl+C to exit)..."
   echo ""
   # Use rshell's built-in serial monitoring or fall back to arduino-cli
@@ -165,7 +176,7 @@ case "$1" in
   flash)    flash ;;
   upload)   shift; upload "$@" ;;
   repl)     repl ;;
-  monitor)  monitor ;;
+  serial)   connect_serial ;;
   reset)    reset ;;
   *)        usage ;;
 esac
