@@ -65,15 +65,15 @@ class WifiManager:
         self.wlan.connect(self.ssid, self.password)
 
         for _ in range(CONNECT_TIMEOUT_S * 2):
-            if self.wlan.isconnected():
+            if self.wlan.status() == 1001:
                 break
             print(".", end="")
             time.sleep(0.5)
         print()
 
-        print(f"[.] isconnected: {self.wlan.isconnected()}")
+        print(f"[.] isconnected: {self.wlan.status() == 1001}")
         print(f"[.] status:      {self.wlan.status()} ({WIFI_STATUS.get(self.wlan.status(), 'unknown')})")
-        return self.wlan.isconnected()
+        return self.wlan.status() == 1001
 
     def wait_for_ip(self):
         """Wait for DHCP to assign a non-zero IP address."""
@@ -90,12 +90,13 @@ class WifiManager:
     def status(self):
         """Print current connection state, IP info, and WLAN status code."""
         code = self.wlan.status()
-        print(f"[.] isconnected: {self.wlan.isconnected()}")
+        print(f"[.] connected:   {code == 1001}  (isconnected() unreliable on ESP32-C6, using status)")
         print(f"[.] status:      {code} ({WIFI_STATUS.get(code, 'unknown')})")
-        if self.wlan.isconnected():
+        if self.wlan.status() == 1001:
             ip, subnet, gateway, dns = self.wlan.ifconfig()
             print(f"[.] SSID:        {self.ssid}")
             print(f"[.] IP:          {ip}")
+            print(f"[.] Subnet:      {subnet}")
             print(f"[.] Gateway:     {gateway}")
             print(f"[.] DNS:         {dns}")
 
@@ -125,7 +126,7 @@ class WifiManager:
 
         while True:
             try:
-                if not self.wlan.isconnected():
+                if not self.wlan.status() == 1001:
                     print("[-] Connection lost — reconnecting...")
                     self.connect_with_retry()
                     print("[+] Reconnected!")
