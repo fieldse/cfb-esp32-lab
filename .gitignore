@@ -11,3 +11,11 @@ sketches/**/*.map
 
 # Claude
 .claude
+
+# Environment
+.env
+
+# VSCode
+.vscode
+*.code-workspace
+*.code-project
