@@ -40,7 +40,7 @@ function usage() {
   echo "  test               Test board connectivity and get chip info"
   echo "  flash              Flash MicroPython firmware to board"
   echo "  upload <file>      Upload a Python script to board (e.g., main.py)"
-  echo "  repl               Open interactive MicroPython REPL"
+  echo "  repl, shell        Open interactive MicroPython REPL"
   echo "  serial             Watch serial output (no interaction)"
   echo "  upload-env         Upload .env to board (required for WiFi scripts)"
   echo "  reset              Reset the board"
@@ -138,8 +138,7 @@ function repl() {
 function connect_serial() {
   echo "[+] Monitoring serial output (Ctrl+C to exit)..."
   echo ""
-  # Use rshell's built-in serial monitoring or fall back to arduino-cli
-  /opt/homebrew/bin/arduino-cli monitor -p "$PORT" --config baudrate=115200
+  "$MPREMOTE" connect "$PORT" monitor
 }
 
 # Test board connectivity and get chip information
@@ -209,7 +208,7 @@ case "$1" in
   test)     test ;;
   flash)    flash ;;
   upload)   shift; upload "$@" ;;
-  repl)     repl ;;
+  repl|shell)     repl ;;
   serial)   connect_serial ;;
   upload-env) upload_env ;;
   reset)    reset ;;
