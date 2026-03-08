@@ -7,13 +7,24 @@
 # Configuration Constants
 # ============================================================================
 
-RSHELL="$HOME/Library/Python/3.9/bin/rshell"
-ESPTOOL="$HOME/Library/Python/3.9/bin/esptool.py"
-MPREMOTE="$HOME/Library/Python/3.9/bin/mpremote"
+VENV_BIN="./venv/bin"
+RSHELL="$VENV_BIN/rshell"
+ESPTOOL="$VENV_BIN/esptool.py"
+MPREMOTE="$VENV_BIN/mpremote"
 PORT="/dev/cu.usbmodem1101"
 CHIP="esp32c6"
 BAUD="460800"
 FIRMWARE_DIR="./firmware"
+
+# Check if venv exists and source it
+if [ ! -d "./venv" ]; then
+  echo "[-] virtualenv not found at ./venv"
+  echo "[!] Create it with: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+  exit 1
+fi
+
+# Activate venv
+source ./venv/bin/activate
 
 # ============================================================================
 # Helper Functions

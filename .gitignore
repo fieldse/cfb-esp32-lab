@@ -19,3 +19,6 @@ sketches/**/*.map
 .vscode
 *.code-workspace
 *.code-project
+
+# Python
+venv
