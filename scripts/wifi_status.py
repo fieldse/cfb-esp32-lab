@@ -2,6 +2,7 @@ import network
 import time
 import gc
 import machine
+import socket
 
 # MicroPython WLAN status codes
 WIFI_STATUS = {
@@ -127,6 +128,23 @@ class WifiManager:
         # We've failed to get there: machine reset
         print("[-] connection failed -- resetting device")
         machine.reset()
+
+    def ping(self, host="8.8.8.8", port=53, timeout=3):
+        """Test network reachability by opening a TCP socket to host:port.
+        Defaults to Google DNS (8.8.8.8:53) — no HTTP needed.
+        Returns True if reachable, False otherwise."""
+        print(f"[.] Pinging {host}:{port}...")
+        try:
+            addr = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)[0][-1]
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            s.connect(addr)
+            s.close()
+            print(f"[+] Reachable: {host}:{port}")
+            return True
+        except OSError as e:
+            print(f"[-] Unreachable: {host}:{port} — {e}")
+            return False
 
     def run(self):
         """Load env, connect, then print status on repeat."""
