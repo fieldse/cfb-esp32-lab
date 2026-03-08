@@ -1,6 +1,7 @@
 import network
 import time
-
+import gc
+import machine
 
 # MicroPython WLAN status codes
 WIFI_STATUS = {
@@ -16,6 +17,7 @@ CONNECT_TIMEOUT_S = 20
 DHCP_TIMEOUT_S    = 5
 RETRY_DELAY_S     = 30
 STATUS_INTERVAL_S = 5
+MAX_RETRIES       = 5
 
 
 class WifiManager:
@@ -50,9 +52,12 @@ class WifiManager:
     def reset_interface(self):
         """Cycle the WiFi interface off and on to clear internal state."""
         print("[+] Resetting WiFi interface...")
+        # Clear the previous connections
+        network.WLAN(network.AP_IF).active(False)  # Disable AP interface
         self.wlan.active(False)
         time.sleep(3)
         self.wlan.active(True)
+
         print("[+] Interface ready")
 
     def connect(self):
@@ -62,8 +67,13 @@ class WifiManager:
             return False
 
         print(f"[+] Connecting to {self.ssid}...")
-        self.wlan.connect(self.ssid, self.password)
+        gc.collect()                                # Ensure adequate heap memory
+        network.WLAN(network.AP_IF).active(False)   # Disable AP interface
+        self.wlan.config(pm=self.wlan.PM_NONE)      # Disable power management
+        self.wlan.config(reconnects=0)              # Manual retry control
 
+        # Connect
+        self.wlan.connect(self.ssid, self.password)
         for _ in range(CONNECT_TIMEOUT_S * 2):
             if self.wlan.status() == 1001:
                 break
@@ -100,19 +110,23 @@ class WifiManager:
             print(f"[.] Gateway:     {gateway}")
             print(f"[.] DNS:         {dns}")
 
-    def connect_with_retry(self):
+    def connect_with_retry(self, max_retries=MAX_RETRIES):
         """
         Full connection flow with retries.
         Cycles interface, connects, waits for IP. Retries on failure.
         """
-        self.reset_interface()
-        while True:
+        for attempt in range(max_retries):
+            print(f"connection attempt #{attempt}")
+            self.reset_interface()
             if self.connect():
                 if self.wait_for_ip():
-                    return True
+                    return self.wlan.ifconfig()
             print(f"[+] Retrying in {RETRY_DELAY_S}s...")
             self.wlan.disconnect()
             time.sleep(RETRY_DELAY_S)
+        # We've failed to get there: machine reset
+        print("[-] connection failed -- resetting device")
+        machine.reset()
 
     def run(self):
         """Load env, connect, then print status on repeat."""
