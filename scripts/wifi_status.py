@@ -164,7 +164,7 @@ class WifiManager:
                 time.sleep(10)
 
         if self.connect_with_retry():
-            print(f"[+] Connected! - {self.assigned_ip()}")
+            print(f"[+] Connected!")
 
         while True:
             try:
@@ -180,6 +180,6 @@ class WifiManager:
             time.sleep(STATUS_INTERVAL_S)
 
 
-# Uncomment to run automatically on boot:
-# wifi = WifiManager()
-# wifi.run()
+# Run the thing
+wifi = WifiManager()
+wifi.run()
