@@ -15,18 +15,18 @@ WIFI_STATUS = {
 }
 
 CONNECT_TIMEOUT_S = 20
-DHCP_TIMEOUT_S    = 5
-RETRY_DELAY_S     = 30
+DHCP_TIMEOUT_S = 5
+RETRY_DELAY_S = 30
 STATUS_INTERVAL_S = 5
-MAX_RETRIES       = 5
+MAX_RETRIES = 5
 
 
 class WifiManager:
 
     def __init__(self):
-        self.ssid     = None
+        self.ssid = None
         self.password = None
-        self.wlan     = network.WLAN(network.STA_IF)
+        self.wlan = network.WLAN(network.STA_IF)
 
     def load_env(self, path=".env"):
         """Parse .env and store SSID and password on self."""
@@ -43,7 +43,7 @@ class WifiManager:
             print(f"[-] Could not read {path}")
             return False
 
-        self.ssid     = env.get("WIFI_SSID")
+        self.ssid = env.get("WIFI_SSID")
         self.password = env.get("WIFI_PASSWORD")
 
         print(f"[.] SSID:     {repr(self.ssid)}")
@@ -68,29 +68,39 @@ class WifiManager:
             return False
 
         print(f"[+] Connecting to {self.ssid}...")
-        gc.collect()                                # Ensure adequate heap memory
-        network.WLAN(network.AP_IF).active(False)   # Disable AP interface
-        self.wlan.config(pm=self.wlan.PM_NONE)      # Disable power management
-        self.wlan.config(reconnects=0)              # Manual retry control
+        gc.collect()  # Ensure adequate heap memory
+        network.WLAN(network.AP_IF).active(False)  # Disable AP interface
+        self.wlan.config(pm=self.wlan.PM_NONE)  # Disable power management
+        self.wlan.config(reconnects=0)  # Manual retry control
 
         # Connect
         self.wlan.connect(self.ssid, self.password)
         for _ in range(CONNECT_TIMEOUT_S * 2):
-            if self.wlan.status() == 1001:
+            if self.connected():
                 break
             print(".", end="")
             time.sleep(0.5)
         print()
 
-        print(f"[.] isconnected: {self.wlan.status() == 1001}")
-        print(f"[.] status:      {self.wlan.status()} ({WIFI_STATUS.get(self.wlan.status(), 'unknown')})")
+        print(f"[.] isconnected: {self.wlan.isconnected()}")
+        print(
+            f"[.] status:      {self.wlan.status()} ({WIFI_STATUS.get(self.wlan.status(), 'unknown')})"
+        )
+        return self.connected()
+
+    def assigned_ip(self):
+        """return the interface's assigned IP"""
+        return self.wlan.ifconfig()[0]
+
+    def connected(self):
+        """check the wlan status code is connected"""
         return self.wlan.status() == 1001
 
     def wait_for_ip(self):
         """Wait for DHCP to assign a non-zero IP address."""
-        print("[+] Waiting for IP...")
+        print("[+] Waiting for IP assigment...")
         for _ in range(DHCP_TIMEOUT_S * 2):
-            ip = self.wlan.ifconfig()[0]
+            ip = self.assigned_ip()
             if ip != "0.0.0.0":
                 print(f"[+] IP assigned: {ip}")
                 return True
@@ -101,15 +111,14 @@ class WifiManager:
     def status(self):
         """Print current connection state, IP info, and WLAN status code."""
         code = self.wlan.status()
-        print(f"[.] connected:   {code == 1001}  (isconnected() unreliable on ESP32-C6, using status)")
+        print(f"[.] connected:   {self.connected()}  (using status == 1001)")
         print(f"[.] status:      {code} ({WIFI_STATUS.get(code, 'unknown')})")
-        if self.wlan.status() == 1001:
-            ip, subnet, gateway, dns = self.wlan.ifconfig()
-            print(f"[.] SSID:        {self.ssid}")
-            print(f"[.] IP:          {ip}")
-            print(f"[.] Subnet:      {subnet}")
-            print(f"[.] Gateway:     {gateway}")
-            print(f"[.] DNS:         {dns}")
+        ip, subnet, gateway, dns = self.wlan.ifconfig()
+        print(f"[.] SSID:        {self.ssid}")
+        print(f"[.] IP:          {ip}")
+        print(f"[.] Subnet:      {subnet}")
+        print(f"[.] Gateway:     {gateway}")
+        print(f"[.] DNS:         {dns}")
 
     def connect_with_retry(self, max_retries=MAX_RETRIES):
         """
@@ -119,15 +128,15 @@ class WifiManager:
         for attempt in range(max_retries):
             print(f"connection attempt #{attempt}")
             self.reset_interface()
-            if self.connect():
-                if self.wait_for_ip():
-                    return self.wlan.ifconfig()
+            if self.connect() and self.wait_for_ip():
+                return self.wlan.ifconfig()
             print(f"[+] Retrying in {RETRY_DELAY_S}s...")
             self.wlan.disconnect()
             time.sleep(RETRY_DELAY_S)
         # We've failed to get there: machine reset
         print("[-] connection failed -- resetting device")
         machine.reset()
+        return False
 
     def ping(self, host="8.8.8.8", port=53, timeout=3):
         """Test network reachability by opening a TCP socket to host:port.
@@ -153,16 +162,19 @@ class WifiManager:
             while True:
                 time.sleep(10)
 
-        self.connect_with_retry()
-        print("[+] Connected!")
+        if self.connect_with_retry():
+            print(f"[+] Connected! - {self.assigned_ip()}")
 
         while True:
             try:
-                if not self.wlan.status() == 1001:
+                if not self.wlan.isconnected():
                     print("[-] Connection lost — reconnecting...")
-                    self.connect_with_retry()
-                    print("[+] Reconnected!")
+                    if self.connect_with_retry():
+                        print("[+] Reconnected!")
+                    else:
+                        continue
                 self.status()
+                self.ping()
             except Exception as e:
                 print(f"[-] Error: {e}")
             time.sleep(STATUS_INTERVAL_S)
