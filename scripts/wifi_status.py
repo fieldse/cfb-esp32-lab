@@ -12,6 +12,7 @@ WIFI_STATUS = {
     203: "association failed",
     204: "handshake timeout",
     1001: "connected (got IP)",
+    1010: "connected",  # this seems to be the right one
 }
 
 CONNECT_TIMEOUT_S = 20
@@ -94,7 +95,7 @@ class WifiManager:
 
     def connected(self):
         """check the wlan status code is connected"""
-        return self.wlan.status() == 1001
+        return self.wlan.status() in (1001, 1010)
 
     def wait_for_ip(self):
         """Wait for DHCP to assign a non-zero IP address."""
@@ -167,14 +168,13 @@ class WifiManager:
 
         while True:
             try:
-                if not self.wlan.isconnected():
+                if not self.connected():
                     print("[-] Connection lost — reconnecting...")
                     if self.connect_with_retry():
                         print("[+] Reconnected!")
-                    else:
-                        continue
-                self.status()
-                self.ping()
+                    self.status()
+                    self.ping()
+                time.sleep(5)
             except Exception as e:
                 print(f"[-] Error: {e}")
             time.sleep(STATUS_INTERVAL_S)
